@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthetic Tracker Ultimate</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #000000;
+            --bg-card: #1c1c1e;
+            --bg-input: #2c2c2e;
+            --text-main: #ffffff;
+            --text-muted: #8e8e93;
+            --accent: #0a84ff;
+            --success: #32d74b;
+            --danger: #ff453a;
+            --border: #38383a;
+            --youtube: #ff0000;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #app {
+            max-width: 600px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;
+            background-color: rgba(28, 28, 30, 0.9); position: sticky; top: 0; z-index: 10;
+            border-bottom: 1px solid var(--border); backdrop-filter: blur(10px);
+        }
+
+        .header-center { text-align: center; }
+        .header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+        .header-volume { font-size: 13px; color: var(--success); font-weight: bold; margin-top: 4px; }
+
+        .btn-finish {
+            background-color: var(--accent); color: white; border: none; padding: 8px 16px;
+            border-radius: 20px; font-weight: 600; cursor: pointer;
+        }
+
+        .container { padding: 20px; padding-bottom: 100px; }
+
+        .routine-card {
+            background-color: var(--bg-card); border-radius: 12px; padding: 20px;
+            margin-bottom: 15px; cursor: pointer;
+        }
+        .routine-card h3 { margin: 0 0 5px 0; color: var(--accent); }
+        .routine-card p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.4; }
+
+        .data-management h3 { color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
+
+        .btn-action {
+            width: 100%; background-color: var(--bg-input); color: var(--text-main);
+            border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 10px;
+            font-size: 15px; font-weight: 500; cursor: pointer;
+        }
+        .btn-action:hover { background-color: #3a3a3c; }
+
+        .exercise-block { margin-bottom: 30px; }
+        .exercise-header { display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; }
+        .exercise-header img {
+            width: 44px; height: 44px; border-radius: 50%; background-color: var(--bg-input);
+            margin-right: 12px; object-fit: cover;
+        }
+        .exercise-title-area { display: flex; flex-direction: column; }
+        .exercise-title-area h2 { font-size: 18px; margin: 0; color: var(--accent); }
+        .exercise-volume-label { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+        .table-header {
+            display: grid; grid-template-columns: 40px 1fr 60px 60px 40px; gap: 10px;
+            padding: 0 10px 10px 10px; font-size: 12px; color: var(--text-muted); font-weight: 600; text-align: center;
+        }
+        .table-header .col-prev { text-align: left; }
+
+        .set-row {
+            display: grid; grid-template-columns: 40px 1fr 60px 60px 40px; gap: 10px;
+            align-items: center; background-color: var(--bg-card); padding: 5px; margin-bottom: 2px; text-align: center; border-radius: 4px;
+        }
+        .set-row.completed { background-color: rgba(50, 215, 75, 0.1); }
+
+        .set-number { font-weight: bold; color: var(--text-muted); }
+        .set-prev { font-size: 13px; color: var(--text-muted); text-align: left; }
+        .set-input {
+            width: 100%; background-color: var(--bg-input); border: none; color: var(--text-main);
+            padding: 8px 0; text-align: center; border-radius: 6px; font-size: 16px; font-weight: 600;
+        }
+        .set-input:focus { outline: 2px solid var(--accent); }
+
+        .btn-check {
+            width: 32px; height: 32px; background-color: var(--bg-input); border: none;
+            border-radius: 8px; color: var(--text-muted); font-size: 16px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto;
+        }
+        .btn-check.checked { background-color: var(--success); color: var(--bg-main); }
+
+        .btn-add-set {
+            width: 100%; background-color: transparent; border: none; padding: 12px;
+            font-size: 16px; margin-top: 5px; cursor: pointer; color: var(--text-muted);
+        }
+
+        /* --- Modal & Tabs --- */
+        #modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: flex-end;
+        }
+        #modal-content {
+            background-color: var(--bg-card); width: 100%; height: 85vh; border-radius: 20px 20px 0 0;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .modal-header {
+            padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .modal-header h2 { margin: 0; font-size: 18px; }
+        .close-modal { background: none; border: none; color: var(--accent); font-size: 16px; cursor: pointer; font-weight: bold; }
+        
+        .modal-tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .tab {
+            flex: 1; text-align: center; padding: 12px; color: var(--text-muted); cursor: pointer;
+            font-size: 14px; font-weight: 600; transition: 0.2s;
+        }
+        .tab.active { color: var(--text-main); border-bottom: 2px solid var(--accent); }
+        .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+
+        .chart-wrapper { margin-bottom: 40px; }
+        .chart-wrapper h4 { margin: 0 0 10px 0; font-size: 15px; color: var(--text-main); text-align: center; }
+        .chart-container { position: relative; height: 180px; width: 100%; }
+
+        .history-entry { margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .history-date { font-weight: bold; color: var(--text-muted); margin-bottom: 8px; font-size: 14px;}
+        .history-set { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 4px; }
+
+        /* --- How To Section Styles --- */
+        .advice-box {
+            background-color: var(--bg-input); padding: 15px; border-radius: 12px;
+            margin-bottom: 20px; border-left: 4px solid var(--accent);
+        }
+        .advice-box h4 { margin: 0 0 10px 0; color: var(--text-main); font-size: 16px; }
+        .advice-box p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+        
+        .youtube-btn {
+            display: flex; align-items: center; justify-content: center; width: 100%;
+            background-color: rgba(255, 0, 0, 0.1); color: var(--youtube); border: 1px solid var(--youtube);
+            padding: 14px; border-radius: 8px; font-weight: bold; font-size: 15px;
+            text-decoration: none; cursor: pointer; transition: 0.2s;
+        }
+        .youtube-btn:hover { background-color: rgba(255, 0, 0, 0.2); }
+        .youtube-btn svg { width: 20px; height: 20px; margin-right: 8px; fill: currentColor; }
+
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="header-container"></div>
+    <div id="main-container" class="container"></div>
+</div>
+
+<div id="modal-overlay">
+    <div id="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title">Exercise Name</h2>
+            <button class="close-modal" onclick="closeModal()">Done</button>
+        </div>
+        <div class="modal-tabs">
+            <div class="tab active" onclick="switchTab('stats')" id="tab-stats">Stats</div>
+            <div class="tab" onclick="switchTab('history')" id="tab-history">History</div>
+            <div class="tab" onclick="switchTab('howto')" id="tab-howto">How To</div>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+    </div>
+</div>
+
+<script>
+    // --- EXERCISE DATABASE & ADVICE ---
+    const exerciseDetails = {
+        "Wide Grip Pull-ups": {
+            advice: "Think about driving your elbows down toward your back pockets, rather than pulling with your arms. Keep your chest elevated to the ceiling to fully stretch and contract the lats for that wide V-taper.",
+            query: "how+to+do+wide+grip+pull+ups+hypertrophy+form"
+        },
+        "Lat Pulldowns (Medium grip)": {
+            advice: "Grip just outside shoulder width. Lean slightly back and pull the bar to your upper chest. Control the weight on the way up to stretch the lats fully. Do not use momentum.",
+            query: "lat+pulldown+form+for+lats+hypertrophy"
+        },
+        "Seated Cable Rows": {
+            advice: "Keep your torso relatively still (a slight forward lean is okay, but don't swing). Squeeze your shoulder blades together hard at the peak of the contraction. This builds back thickness.",
+            query: "seated+cable+row+form+for+back+thickness"
+        },
+        "Straight Arm Lat Pulldowns": {
+            advice: "Use a rope or a straight bar. Hinge slightly at the hips, keep a slight bend in your elbows, and sweep the weight down to your thighs. Focus entirely on the sweeping motion of the lats.",
+            query: "straight+arm+lat+pulldown+form+tutorial"
+        },
+        "Incline Dumbbell Bicep Curls": {
+            advice: "Set the bench to a 45-degree angle. Let your arms hang straight down behind your torso. This places the long head of the bicep under an extreme stretch, essential for building the bicep 'peak'.",
+            query: "incline+dumbbell+curl+form+bicep+peak"
+        },
+        "Hammer Curls": {
+            advice: "Keep your palms facing each other. Squeeze the dumbbell tight. This targets the brachialis (the muscle under the bicep), which pushes the bicep up, making your arms look thicker from the front.",
+            query: "hammer+curls+form+brachialis"
+        },
+        "Incline Dumbbell Press": {
+            advice: "Set the bench to a 30-degree incline. Keep your elbows tucked at about a 45-degree angle to your torso to protect your shoulders. This movement creates the 'shelf' look on your upper chest.",
+            query: "incline+dumbbell+press+chest+hypertrophy"
+        },
+        "Flat Bench Press": {
+            advice: "Plant your feet firmly on the floor, keep a slight arch in your lower back, and squeeze your shoulder blades together. Control the bar down to your mid-chest and press up explosively.",
+            query: "flat+barbell+bench+press+form+tutorial"
+        },
+        "Cable Crossovers": {
+            advice: "Set the pulleys low or high depending on your target. Keep a slight bend in the elbows. Imagine you are hugging a large tree. Squeeze the chest hard when your hands meet.",
+            query: "cable+crossover+chest+fly+form"
+        },
+        "Dumbbell Lateral Raises": {
+            advice: "Lean slightly forward. Lead the movement with your elbows, pouring the dumbbells slightly forward as if pouring water from pitchers. This isolates the medial deltoid for the '3D' shoulder look.",
+            query: "dumbbell+lateral+raise+form+side+delts"
+        },
+        "Overhead Triceps Extension": {
+            advice: "You can use a dumbbell or a cable rope. Keep your upper arms locked beside your ears. Lower the weight behind your head until you feel a deep stretch in the triceps, then press up.",
+            query: "overhead+tricep+extension+long+head"
+        },
+        "Triceps Rope Pushdowns": {
+            advice: "Pin your elbows to your sides. Push the rope down and actively pull the ends apart at the bottom to fully contract the triceps. Control the weight back up.",
+            query: "tricep+rope+pushdown+form"
+        },
+        "Barbell Squats": {
+            advice: "Brace your core tight. Initiate the movement by breaking at the hips and knees simultaneously. Keep your chest up and drive through the mid-foot. Depth should be at least parallel.",
+            query: "how+to+barbell+back+squat+form"
+        },
+        "Romanian Deadlifts (RDLs)": {
+            advice: "Keep a slight, fixed bend in your knees. Push your hips straight back as if trying to touch a wall behind you. Go only until you feel a deep hamstring stretch, then squeeze your glutes to stand up.",
+            query: "romanian+deadlift+RDL+form+hamstrings"
+        },
+        "Leg Extensions": {
+            advice: "Adjust the machine so your knees align with the pivot point. Grip the handles tightly to keep your hips glued to the seat. Squeeze the quads hard at the top for a full second.",
+            query: "leg+extension+machine+form"
+        },
+        "Lying Leg Curls": {
+            advice: "Keep your hips pressed firmly into the pad; do not let your lower back arch to move the weight. Focus on pulling the weight smoothly with your hamstrings.",
+            query: "lying+leg+curl+machine+form"
+        },
+        "Hanging Leg Raises": {
+            advice: "Hang from a pull-up bar. Avoid swinging. Think about curling your pelvis up toward your belly button rather than just lifting your legs. This fully engages the lower abdominals.",
+            query: "hanging+leg+raises+lower+abs+form"
+        },
+        "Stomach Vacuums": {
+            advice: "Exhale all the air from your lungs. Pull your belly button in as far as possible toward your spine and hold it there. This trains the transverse abdominis, physically pulling your waistline in tighter.",
+            query: "how+to+do+stomach+vacuums+for+smaller+waist"
+        },
+        "Seated Dumbbell Shoulder Press": {
+            advice: "Set the bench angle to about 75 degrees, not completely vertical. Bring the dumbbells down until they hover just above your shoulders, then press up without clanking them together.",
+            query: "seated+dumbbell+shoulder+press+form"
+        },
+        "Cable Lateral Raises": {
+            advice: "Set the cable to the bottom. Stand slightly off-center and pull the cable across your body. The cable provides constant tension throughout the entire range of motion, unlike dumbbells.",
+            query: "cable+lateral+raise+form+3d+delts"
+        },
+        "Face Pulls": {
+            advice: "Set the cable at face height with a rope. Pull the rope toward your face, letting your hands pass your ears. Squeeze your rear delts and upper back. This is crucial for shoulder health and posture.",
+            query: "how+to+do+face+pulls+rear+delts"
+        },
+        "V-Bar Lat Pulldowns": {
+            advice: "Use the close-grip V-handle. Lean back slightly and pull the handle to your lower chest/upper stomach. This variation hits the lower lats heavily, completing the V-Taper.",
+            query: "close+grip+v+bar+lat+pulldown"
+        },
+        "Dumbbell Pullovers": {
+            advice: "Lie perpendicular across a bench with only your upper back supported. Hold one dumbbell with both hands. Lower it behind your head to stretch the lats and ribcage, then pull back to chest level.",
+            query: "dumbbell+pullover+for+lats+and+chest"
+        },
+        "Barbell Skullcrushers": {
+            advice: "Using an EZ bar, lie flat. Lower the bar to your forehead (or just behind your head). Keep your elbows pointed up, not flared out. Extend the bar up using only your triceps.",
+            query: "ez+bar+skullcrusher+form"
+        },
+        "EZ Bar Preacher Curls": {
+            advice: "Keep your armpits wedged into the top of the pad. Do not let your front delts do the work. Lower the weight slowly until near-full extension, then squeeze the biceps to bring it up.",
+            query: "ez+bar+preacher+curl+form"
+        },
+        "Cable Triceps Kickbacks": {
+            advice: "Bend over at the waist. Keep your upper arm completely parallel to the floor and locked in place. Extend your arm straight back and hold the contraction for a split second.",
+            query: "cable+tricep+kickback+form"
+        },
+        "Cable Crunches": {
+            advice: "Kneel down with a rope attachment behind your neck. Don't pull with your arms. Round your back and curl your torso down so your elbows go toward your knees, crunching the abs.",
+            query: "kneeling+cable+crunch+form"
+        }
+    };
+
+    const routines = [
+        { day: 1, title: "Day 1: Pull", type: "workout", exercises: ["Wide Grip Pull-ups", "Lat Pulldowns (Medium grip)", "Seated Cable Rows", "Straight Arm Lat Pulldowns", "Incline Dumbbell Bicep Curls", "Hammer Curls"] },
+        { day: 2, title: "Day 2: Push", type: "workout", exercises: ["Incline Dumbbell Press", "Flat Bench Press", "Cable Crossovers", "Dumbbell Lateral Raises", "Overhead Triceps Extension", "Triceps Rope Pushdowns"] },
+        { day: 3, title: "Day 3: Legs & Core", type: "workout", exercises: ["Barbell Squats", "Romanian Deadlifts (RDLs)", "Leg Extensions", "Lying Leg Curls", "Hanging Leg Raises", "Stomach Vacuums"] },
+        { day: 4, title: "Day 4: Rest / Active Recovery", type: "rest", exercises: [] },
+        { day: 5, title: "Day 5: Shoulder & Lat Specialization", type: "workout", exercises: ["Seated Dumbbell Shoulder Press", "Cable Lateral Raises", "Face Pulls", "V-Bar Lat Pulldowns", "Dumbbell Pullovers"] },
+        { day: 6, title: "Day 6: Arms & Core", type: "workout", exercises: ["Barbell Skullcrushers", "EZ Bar Preacher Curls", "Cable Triceps Kickbacks", "Cable Crunches", "Stomach Vacuums"] },
+        { day: 7, title: "Day 7: Rest", type: "rest", exercises: [] }
+    ];
+
+    let historyDB = JSON.parse(localStorage.getItem('hevy_tracker_history')) || [];
+    let currentSession = null; 
+    let activeModalExercise = "";
+    let activeCharts = []; 
+
+    // --- HOME SCREEN ---
+    function renderHome() {
+        currentSession = null;
+        document.getElementById('header-container').innerHTML = `<div class="header"><h1>Routines</h1></div>`;
+        
+        let html = '';
+        routines.forEach((r, index) => {
+            html += `<div class="routine-card" onclick="${r.type === 'workout' ? `startWorkout(${index})` : ''}">
+                        <h3>${r.title}</h3>
+                        <p>${r.exercises.length > 0 ? r.exercises.join(' • ') : 'Rest Day'}</p>
+                    </div>`;
+        });
+
+        html += `
+            <div class="routine-card data-management" style="margin-top: 40px;">
+                <h3>Data & Export</h3>
+                <button class="btn-action" onclick="exportCSV()">📊 Export Spreadsheet (.csv)</button>
+                <button class="btn-action" onclick="exportJSON()">💾 Download Backup (.json)</button>
+                <input type="file" id="import-file" style="display:none" accept=".json" onchange="importJSON(event)">
+                <button class="btn-action" onclick="document.getElementById('import-file').click()">📂 Load Backup (.json)</button>
+            </div>
+        `;
+        document.getElementById('main-container').innerHTML = html;
+    }
+
+    // --- LIVE VOLUME ---
+    function getLiveVolumes() {
+        let totalVolume = 0;
+        let exVolumes = currentSession.exercises.map(ex => {
+            let exVol = 0;
+            ex.sets.forEach(set => {
+                if (set.completed && set.lbs && set.reps) exVol += (Number(set.lbs) * Number(set.reps));
+            });
+            totalVolume += exVol;
+            return exVol;
+        });
+        return { totalVolume, exVolumes };
+    }
+
+    function updateLiveVolumeDisplays() {
+        if (!currentSession) return;
+        const vols = getLiveVolumes();
+        const totalHeaderEl = document.getElementById('total-workout-volume');
+        if (totalHeaderEl) totalHeaderEl.innerText = `Volume: ${vols.totalVolume.toLocaleString()} lbs`;
+
+        vols.exVolumes.forEach((vol, idx) => {
+            const exEl = document.getElementById(`volume-ex-${idx}`);
+            if (exEl) exEl.innerText = `Volume: ${vol.toLocaleString()} lbs`;
+        });
+    }
+
+    // --- WORKOUT LOGIC ---
+    function startWorkout(routineIndex) {
+        const routine = routines[routineIndex];
+        currentSession = {
+            title: routine.title, startTime: new Date().toISOString(),
+            exercises: routine.exercises.map(ex => ({ name: ex, sets: [{ lbs: '', reps: '', completed: false }] }))
+        };
+        renderActiveWorkout();
+    }
+
+    function getPreviousSetString(exerciseName, setIndex) {
+        const pastWorkouts = historyDB.filter(w => w.exercises.some(e => e.name === exerciseName));
+        if (pastWorkouts.length === 0) return '-';
+        pastWorkouts.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const lastTime = pastWorkouts[0].exercises.find(e => e.name === exerciseName);
+        if (lastTime.sets[setIndex]) return `${lastTime.sets[setIndex].lbs}lbs x ${lastTime.sets[setIndex].reps}`;
+        return '-';
+    }
+
+    function renderActiveWorkout() {
+        document.getElementById('header-container').innerHTML = `
+            <div class="header">
+                <button class="btn-action" style="width:auto; padding: 6px 12px; margin:0;" onclick="renderHome()">Cancel</button>
+                <div class="header-center">
+                    <h1>Log Workout</h1>
+                    <div id="total-workout-volume" class="header-volume">Volume: 0 lbs</div>
+                </div>
+                <button class="btn-finish" onclick="finishWorkout()">Finish</button>
+            </div>
+        `;
+
+        let html = '';
+        currentSession.exercises.forEach((ex, exIndex) => {
+            html += `
+                <div class="exercise-block">
+                    <div class="exercise-header" onclick="openModal('${ex.name}')">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230a84ff'><path d='M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z'/></svg>" alt="icon">
+                        <div class="exercise-title-area">
+                            <h2>${ex.name}</h2>
+                            <div id="volume-ex-${exIndex}" class="exercise-volume-label">Volume: 0 lbs</div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-header">
+                        <div>SET</div><div class="col-prev">PREVIOUS</div><div>LBS</div><div>REPS</div><div>✔</div>
+                    </div>
+            `;
+
+            ex.sets.forEach((set, setIndex) => {
+                const prevStr = getPreviousSetString(ex.name, setIndex);
+                html += `
+                    <div class="set-row ${set.completed ? 'completed' : ''}">
+                        <div class="set-number">${setIndex + 1}</div>
+                        <div class="set-prev">${prevStr}</div>
+                        <div><input type="number" class="set-input" value="${set.lbs}" placeholder="-" oninput="updateSet(${exIndex}, ${setIndex}, 'lbs', this.value)"></div>
+                        <div><input type="number" class="set-input" value="${set.reps}" placeholder="-" oninput="updateSet(${exIndex}, ${setIndex}, 'reps', this.value)"></div>
+                        <button class="btn-check ${set.completed ? 'checked' : ''}" onclick="toggleSet(${exIndex}, ${setIndex})">✔</button>
+                    </div>
+                `;
+            });
+            html += `<button class="btn-add-set" onclick="addSet(${exIndex})">+ Add Set</button></div>`;
+        });
+        document.getElementById('main-container').innerHTML = html;
+        updateLiveVolumeDisplays();
+    }
+
+    function addSet(exIndex) {
+        currentSession.exercises[exIndex].sets.push({ lbs: '', reps: '', completed: false });
+        renderActiveWorkout();
+    }
+
+    function updateSet(exIndex, setIndex, field, value) {
+        currentSession.exercises[exIndex].sets[setIndex][field] = value;
+        updateLiveVolumeDisplays();
+    }
+
+    function toggleSet(exIndex, setIndex) {
+        const set = currentSession.exercises[exIndex].sets[setIndex];
+        if (!set.completed && (set.lbs === '' || set.reps === '')) return;
+        set.completed = !set.completed;
+        renderActiveWorkout();
+    }
+
+    function finishWorkout() {
+        const finishedWorkout = { id: Date.now(), date: currentSession.startTime, title: currentSession.title, exercises: [] };
+        currentSession.exercises.forEach(ex => {
+            const completedSets = ex.sets.filter(s => s.completed);
+            if (completedSets.length > 0) finishedWorkout.exercises.push({ name: ex.name, sets: completedSets });
+        });
+
+        if (finishedWorkout.exercises.length > 0) {
+            historyDB.push(finishedWorkout);
+            localStorage.setItem('hevy_tracker_history', JSON.stringify(historyDB));
+        }
+        renderHome();
+    }
+
+    // --- MODAL & CHARTS ---
+    function openModal(exerciseName) {
+        activeModalExercise = exerciseName;
+        document.getElementById('modal-title').innerText = exerciseName;
+        document.getElementById('modal-overlay').style.display = 'flex';
+        switchTab('howto'); // Default to How-To since we added new data
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').style.display = 'none';
+        activeCharts.forEach(c => c.destroy()); activeCharts = [];
+    }
+
+    function switchTab(tab) {
+        ['stats', 'history', 'howto'].forEach(t => document.getElementById(`tab-${t}`).classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+
+        const body = document.getElementById('modal-body');
+        if (tab === 'stats') renderStatsTab(body);
+        else if (tab === 'history') renderHistoryTab(body);
+        else renderHowToTab(body);
+    }
+
+    function renderStatsTab(container) {
+        container.innerHTML = `
+            <div class="chart-wrapper"><h4>Heaviest Weight (1RM)</h4><div class="chart-container"><canvas id="chartMaxWeight"></canvas></div></div>
+            <div class="chart-wrapper"><h4>Total Volume (Lbs × Reps)</h4><div class="chart-container"><canvas id="chartVolume"></canvas></div></div>
+            <div class="chart-wrapper"><h4>Most Reps in a Set</h4><div class="chart-container"><canvas id="chartMaxReps"></canvas></div></div>
+        `;
+        activeCharts.forEach(c => c.destroy()); activeCharts = [];
+
+        const pastWorkouts = historyDB.filter(w => w.exercises.some(e => e.name === activeModalExercise)).sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        const labels = [], weightData = [], volumeData = [], repsData = [];
+        pastWorkouts.forEach(w => {
+            const ex = w.exercises.find(e => e.name === activeModalExercise);
+            labels.push(new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            weightData.push(Math.max(...ex.sets.map(s => Number(s.lbs) || 0)));
+            repsData.push(Math.max(...ex.sets.map(s => Number(s.reps) || 0)));
+            volumeData.push(ex.sets.reduce((sum, s) => sum + ((Number(s.lbs) || 0) * (Number(s.reps) || 0)), 0));
+        });
+
+        if (labels.length === 0) {
+            ['chartMaxWeight', 'chartVolume', 'chartMaxReps'].forEach(id => {
+                const ctx = document.getElementById(id).getContext('2d');
+                ctx.font = "14px Arial"; ctx.fillStyle = "#8e8e93"; ctx.textAlign = "center";
+                ctx.fillText("Complete workouts to build charts.", 180, 90);
+            });
+            return;
+        }
+
+        function createChart(id, data, color) {
+            activeCharts.push(new Chart(document.getElementById(id).getContext('2d'), {
+                type: 'line', data: { labels: labels, datasets: [{ data: data, borderColor: color, backgroundColor: color.replace('1)', '0.1)'), borderWidth: 3, fill: true, tension: 0.4, pointBackgroundColor: '#ffffff', pointRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#38383a' }, ticks: { color: '#8e8e93' } }, x: { grid: { display: false }, ticks: { color: '#8e8e93' } } } }
+            }));
+        }
+        createChart('chartMaxWeight', weightData, 'rgba(10, 132, 255, 1)');
+        createChart('chartVolume', volumeData, 'rgba(50, 215, 75, 1)');
+        createChart('chartMaxReps', repsData, 'rgba(255, 69, 58, 1)');
+    }
+
+    function renderHistoryTab(container) {
+        const pastWorkouts = historyDB.filter(w => w.exercises.some(e => e.name === activeModalExercise)).sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (pastWorkouts.length === 0) return container.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 50px;">No history yet.</p>`;
+        
+        let html = '';
+        pastWorkouts.forEach(workout => {
+            const dateStr = new Date(workout.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            html += `<div class="history-entry"><div class="history-date">${dateStr}</div>`;
+            workout.exercises.find(e => e.name === activeModalExercise).sets.forEach((set, i) => {
+                html += `<div class="history-set"><span>Set ${i + 1}</span><span><strong>${set.lbs}</strong> lbs × <strong>${set.reps}</strong></span></div>`;
+            });
+            html += `</div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function renderHowToTab(container) {
+        const details = exerciseDetails[activeModalExercise] || {
+            advice: "Control the weight on the negative portion of the movement. Focus on feeling the target muscle stretch and contract.",
+            query: activeModalExercise.replace(/\s+/g, "+") + "+form+tutorial"
+        };
+
+        const ytLink = `https://www.youtube.com/results?search_query=${details.query}`;
+
+        container.innerHTML = `
+            <div class="advice-box">
+                <h4>Biomechanics & Form Target</h4>
+                <p>${details.advice}</p>
+            </div>
+            <a href="${ytLink}" target="_blank" class="youtube-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                Watch Form Tutorial on YouTube
+            </a>
+            <p style="color: var(--text-muted); font-size: 13px; text-align: center; margin-top: 20px;">
+                <em>Clicking the button will open a curated YouTube search in a new tab so your workout data stays active here.</em>
+            </p>
+        `;
+    }
+
+    // --- DATA IMPORT/EXPORT ---
+    function exportJSON() {
+        const a = document.createElement('a');
+        a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historyDB));
+        a.download = "aesthetic_tracker_backup.json";
+        a.click();
+    }
+
+    function exportCSV() {
+        if(historyDB.length === 0) return alert("No workout data to export yet!");
+        let csv = "Date,Workout Title,Exercise,Set Number,Weight (lbs),Reps\n";
+        historyDB.forEach(w => w.exercises.forEach(ex => ex.sets.forEach((s, i) => csv += `"${new Date(w.date).toLocaleDateString()}","${w.title}","${ex.name}",${i + 1},${s.lbs},${s.reps}\n`)));
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        link.download = "workout_history.csv";
+        link.click();
+    }
+
+    function importJSON(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try { historyDB = JSON.parse(evt.target.result); localStorage.setItem('hevy_tracker_history', JSON.stringify(historyDB)); renderHome(); alert("Data imported!"); } 
+            catch { alert("Invalid file."); }
+        };
+        reader.readAsText(file);
+    }
+
+    renderHome();
+</script>
+</body>
+</html>
